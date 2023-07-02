@@ -60,4 +60,7 @@ class Network:
         address = s.getsockname()[0]
         s.close()
         return address
+    
+    def __str__(self):
+        return f"Network(is_server={self.is_server}, server_ip={self.server_ip}, host={self.host}, port={self.port}, server_socket={self.server_socket}, client_socket={self.client_socket})"
         
