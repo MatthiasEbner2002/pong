@@ -1,11 +1,23 @@
 # Pong Game
-!! NOT TESTET ON 2 PC !!<br>
-Pong Game is a classic arcade game implemented in Python using the Pygame library. It allows players to compete against each other by bouncing a ball back and forth on the screen.
+## Table of Contents
+
+- [Pong Game](#pong-game)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+    - [INFO](#info)
+  - [Connecting](#connecting)
+    - [Server](#server)
+    - [Client](#client)
+
+## Introduction
+Pong Game is a classic arcade game implemented in Python using the Pygame library.
+
 
 
 ![Alt text](/images/image.png)
 
-
+### INFO
+!! NOT TESTET ON 2 PC !!<br>
 ## Connecting
 
 Bevor playing you and you friend need to be connected to the same network. One neets to host the game and another needs to connect to the server with the ip of the server.
