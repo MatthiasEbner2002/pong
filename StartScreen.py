@@ -1,5 +1,4 @@
-import pygame
-import sys
+import pygame, sys, threading
 from network import Network
 
 class StartScreen:
@@ -45,6 +44,11 @@ class StartScreen:
         
         # Network
         self.ip_address = ""
+        
+        # 
+        self.connection_established = False
+        self.network_thread = None
+        self.network = None
 
     def run(self):
 
@@ -117,21 +121,25 @@ class StartScreen:
             
         elif self.game_state == "start_game":
             font_start = pygame.font.Font(None, 40)
-            waiting_text = font_start.render("Waiting for a connection...", True, self.WHITE)
+            waiting_text = font_start.render("Waiting for a connection", True, self.WHITE)
             waiting_rect = waiting_text.get_rect(center=(self.window_width // 2, self.window_height // 2))
-            network: Network = Network(is_server=True, start_now=False)
-            ip:str = network.start_socket()
-            ip_text = font_start.render(f"IP: {ip}", True, self.WHITE)
+            ip_text = font_start.render(f"IP: {self.ip_address}", True, self.WHITE)
             ip_rect = ip_text.get_rect(center=(self.window_width // 2, self.window_height // 2 + 50))
+            #print(self.ip_address)
+            # Calculate the number of dots to display based on the current frame count
+            num_dots = (pygame.time.get_ticks() // 500) % 4
+            dots = "." * num_dots
+
+            dots_text = font_start.render(dots, True, self.WHITE)
+            dots_rect = dots_text.get_rect(left=waiting_rect.right + 10, centery=waiting_rect.centery)
 
             self.window.blit(waiting_text, waiting_rect)
+            self.window.blit(dots_text, dots_rect)
             self.window.blit(ip_text, ip_rect)
-            pygame.display.flip()
-            print("accepting connection")
-            network.accept_connection()
-            self.game_state = "main_menu"
-            return network
-            
+        
+            if self.connection_established:
+                print(f"Network: {self.network}")
+                return self.network
         
             
         pygame.display.flip()
@@ -169,8 +177,8 @@ class StartScreen:
                         self.ip_address = self.ip_address[:-1]  # Remove the last character
                     elif event.key == pygame.K_RETURN:
                         print(f"Connecting to server with IP: {self.ip_address}")
-                        network:Network = Network(server_ip=self.ip_address)
-                        return network
+                        self.network:Network = Network(server_ip=self.ip_address)
+                        return self.network
                         # Add code for connecting to the server with the entered IP address
                     else:
                         # Append the typed character to the IP address
@@ -184,12 +192,23 @@ class StartScreen:
 
     def switch_to_option(self, option):
         if option == "START GAME":
+            self.network_thread = threading.Thread(target=self.wait_for_connection)
+            self.network_thread.start()
             self.game_state = "start_game"
         elif option == "JOIN GAME":
             self.game_state = "join_game"
         elif option == "EXIT":
             pygame.quit()
-            sys.exit()  
+            sys.exit()
+            
+    def wait_for_connection(self):
+        self.network = Network(is_server=True, start_now=False)
+        self.ip_address = self.network.start_socket()
+
+        #while not self.connection_established:
+        self.network.accept_connection()
+        self.connection_established = True
+
 
 # Create an instance of the StartScreen class and run the game
 #start_screen = StartScreen()
