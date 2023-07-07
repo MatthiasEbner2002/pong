@@ -2,7 +2,7 @@ import pygame
 from game import Game
 from network import Network
 
-debug: bool = True
+debug: bool = False
 
 def ask_for_start_choice_and_creat_network():
     
