@@ -40,7 +40,7 @@ class StartScreen:
         self.PURPLE = (128, 0, 128)
 
         self.player_name: str = "Player"
-        self.player_speed: int = 5
+        self.player_speed: int = 8
         self.ball_speed: int = 5
         # Game state
         self.game_state: str = "main_menu"
