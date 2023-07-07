@@ -48,23 +48,30 @@ class StartScreen:
             "START GAME": "start_game",
             "JOIN GAME": "join_game",
             "SETTINGS": "settings",
-            "EXIT": "exit"
+            "EXIT": "exit",
+            "MAIN MENU": "main_menu"
         }
         self.gamestate_to_option: Dict[str, str] = {v: k for k, v in self.option_to_gamestate.items()}
+        
+
 
         # Game options
         self.options: List[str] =  list(self.option_to_gamestate.keys()) # Get the options from the dictionary
         self.selected_option: int = 0 # The selected option at the moment, 0 is the first option
+        self.font_options = pygame.font.Font(None, 40)
+        
         
         # Network
-        self.ip_address: str = ""
-        
-        # 
+        self.ip_address: str = ""        
         self.connection_established: bool = False
         self.network_thread:  Optional[threading.Thread] = None
         self.network: Network = None
         
-    def get_gamestate_from_option(self, option: str) -> str:
+         # Invalid game state button
+        self.invalid_state_button_rect = pygame.Rect(20, self.window_height - 70, 200, 50)
+        self.invalid_state_button_text = self.font_options.render("<- Back to Main Menu", True, self.WHITE)
+        
+    def get_gamestate_from_option(self, option: str) -> Optional[str]:
         """
         Get the gamestate from the option
         Args:
@@ -76,7 +83,7 @@ class StartScreen:
         
         return self.option_to_gamestate.get(option)
 
-    def get_option_from_gamestate(self, gamestate: str) -> str:
+    def get_option_from_gamestate(self, gamestate: str) -> Optional[str]:
         """
         Get the option from the gamestate
 
@@ -108,11 +115,11 @@ class StartScreen:
         
         if self.game_state == "main_menu":
             font_title = pygame.font.Font(None, 80)  # Increase font size for "Pong"
-            font_options = pygame.font.Font(None, 40)
             title_text = font_title.render("Pong", True, self.WHITE)
             title_rect = title_text.get_rect(center=(self.window_width // 2, 100))
             
-            self.option_texts = [font_options.render(option, True, self.WHITE) for option in self.options]
+            # Render the options, except for the "MAIN MENU" option
+            self.option_texts = [self.font_options.render(option, True, self.WHITE) for option in self.options if option != "MAIN MENU"]
 
             self.option_rects = [
                 option_text.get_rect(center=(self.window_width // 2, self.window_height // 2 + index * 50))
@@ -124,17 +131,16 @@ class StartScreen:
             for index, option_rect in enumerate(self.option_rects):
                 if option_rect.collidepoint(pygame.mouse.get_pos()):
                     self.selected_option = index
-                    pygame.draw.rect(self.window, self.GRAY, option_rect)
-                    pygame.draw.rect(self.window, self.BLACK, option_rect.inflate(6, 6))
+                    pygame.draw.rect(self.window, self.BLACK, option_rect.inflate(6, 6)) # Draw a black rectangle around the option
                 else:
-                    pygame.draw.rect(self.window, self.BLACK, option_rect)
+                    pygame.draw.rect(self.window, self.BLACK, option_rect) # Draw a black rectangle around the option
 
-                if index == self.selected_option:
+                if index == self.selected_option: # If the option is selected
                     selected_option_react = option_rect
                     # Draw underline for hovered option
                     underline_rect = pygame.Rect(selected_option_react.left, selected_option_react.bottom - 4,
                                                 selected_option_react.width, 4)
-                    pygame.draw.rect(self.window, self.WHITE, underline_rect)
+                    pygame.draw.rect(self.window, self.WHITE, underline_rect) # Draw a white rectangle under the option
 
                 self.window.blit(self.option_texts[index], option_rect)
                 
@@ -165,7 +171,7 @@ class StartScreen:
             waiting_rect = waiting_text.get_rect(center=(self.window_width // 2, self.window_height // 2))
             ip_text = font_start.render(f"IP: {self.ip_address}", True, self.WHITE)
             ip_rect = ip_text.get_rect(center=(self.window_width // 2, self.window_height // 2 + 50))
-            #print(self.ip_address)
+
             # Calculate the number of dots to display based on the current frame count
             num_dots = (pygame.time.get_ticks() // 500) % 4
             dots = "." * num_dots
@@ -181,12 +187,20 @@ class StartScreen:
                 print(f"Network: {self.network}")
                 return self.network
             
-        else: # Invalid game state
+        else:  # Other game states (including the error state)
             font_error = pygame.font.Font(None, 40)
-            error_text = font_error.render("Invalid game state", True, self.RED)
+            error_text = font_error.render(f"Invalid game state: \"{self.game_state}\"", True, self.RED)
             error_rect = error_text.get_rect(center=(self.window_width // 2, self.window_height // 2))
 
+            # Render the error message
             self.window.blit(error_text, error_rect)
+
+            # Render the "Back to Main Menu" button
+            pygame.draw.rect(self.window, self.GRAY, self.invalid_state_button_rect)
+            pygame.draw.rect(self.window, self.BLACK, self.invalid_state_button_rect.inflate(6, 6))
+            self.window.blit(self.invalid_state_button_text, self.invalid_state_button_rect.move(10, 10))
+
+
 
         
             
@@ -208,7 +222,7 @@ class StartScreen:
                     elif event.key == pygame.K_RETURN:
                         if self.selected_option is not None:
                             print(f"Option {self.selected_option + 1} selected")
-                            self.switch_to_option(self.options[self.selected_option])
+                            self.switch_to_gamestate_from_option(self.options[self.selected_option])
                             # Add code for selected option action
                 
                 if event.type == pygame.MOUSEBUTTONUP:
@@ -217,7 +231,7 @@ class StartScreen:
                         if option_rect.collidepoint(mouse_pos):
                             self.selected_option = index
                             print(f"Option {self.selected_option + 1} selected")
-                            self.switch_to_option(self.options[self.selected_option])
+                            self.switch_to_gamestate_from_option(self.options[self.selected_option])
                             # Add code for selected option action
                             
             elif self.game_state == "join_game":
@@ -236,14 +250,19 @@ class StartScreen:
 
             elif self.game_state == "start_game":
                 pass
-            
-            elif self.game_state == "settings":
-                pass
-            
+            else:
+                #if not self.game_state in self.option_to_gamestate.values(): # If the game state is a valid option
+                if event.type == pygame.MOUSEBUTTONUP:
+                    if self.invalid_state_button_rect.collidepoint(event.pos):
+                        self.game_state = "main_menu"
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                            self.game_state = "main_menu"
+                    
         return None
 
 
-    def switch_to_option(self, option) -> None:
+    def switch_to_gamestate_from_option(self, option: str) -> None:
         """
         Switches to the selected option:
         - start_game: creates a server and waits for a connection, then starts the game
@@ -269,7 +288,8 @@ class StartScreen:
                 pygame.quit()
                 sys.exit()
             case _:
-                match_found = False
+                #match_found = False # to stop from going to invalid states
+                pass
         if match_found:
             self.game_state = option_to_state
             
@@ -279,8 +299,3 @@ class StartScreen:
 
         self.network.accept_connection()
         self.connection_established = True
-
-
-# Create an instance of the StartScreen class and run the game
-#start_screen = StartScreen()
-#start_screen.run()
