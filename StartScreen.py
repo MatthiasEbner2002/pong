@@ -1,6 +1,7 @@
 import pygame, sys, threading
 from typing import Dict, List, Optional
 from network import Network
+from SettingData import SettingData
 
 class StartScreen:
     def __init__(self, window_width, window_height, window, clock):
@@ -29,29 +30,30 @@ class StartScreen:
         pygame.display.set_caption("Start Screen") # Set the caption of the window
 
         # Colors
-        self.BLACK = (0, 0, 0)
-        self.WHITE = (255, 255, 255)
-        self.GRAY = (128, 128, 128)
-        self.GREEN = (0, 255, 0)
-        self.RED = (255, 0, 0)
-        self.BLUE = (0, 0, 255)
+        self.BLACK  = (0, 0, 0)
+        self.WHITE  = (255, 255, 255)
+        self.GRAY   = (128, 128, 128)
+        self.GREEN  = (0, 255, 0)
+        self.RED    = (255, 0, 0)
+        self.BLUE   = (0, 0, 255)
         self.YELLOW = (255, 255, 0)
         self.ORANGE = (255, 165, 0)
         self.PURPLE = (128, 0, 128)
 
-        self.player_name: str = "Player"
-        self.player_speed: int = 8
-        self.ball_speed: int = 5
+        self.player_name: str   = "Player"
+        self.player_speed: int  = 8
+        self.ball_speed: int    = 5
+        
         # Game state
         self.game_state: str = "main_menu"
 
         # Game options, add game options here
         self.option_to_gamestate: Dict[str, str] = {
             "START GAME": "start_game",
-            "JOIN GAME": "join_game",
-            "SETTINGS": "settings",
-            "EXIT": "exit",
-            "MAIN MENU": "main_menu"
+            "JOIN GAME" : "join_game",
+            "SETTINGS"  : "settings",
+            "EXIT"      : "exit",
+            "MAIN MENU" : "main_menu"
         }
         self.gamestate_to_option: Dict[str, str] = {v: k for k, v in self.option_to_gamestate.items()}
         
@@ -69,22 +71,24 @@ class StartScreen:
         self.network_thread:  Optional[threading.Thread] = None
         self.network: Network = None
         
-         # Invalid game state button
+        # Invalid game state button
         self.invalid_state_button_rect = pygame.Rect(20, self.window_height - 70, 200, 50)
         self.invalid_state_button_text = self.font_options.render("<- Back to Main Menu", True, self.WHITE)
         
-        self.reset_settings_input() # Reset the inputs to the values at the moment
 
         # Input rectangles for settings
-        self.fixed_length = 200  # Adjust this value as needed
+        self.fixed_length = 200
 
-        self.player_name_input_rect = pygame.Rect(self.window_width // 2 - 90, self.window_height // 2 - 150, self.fixed_length, 30)
-        self.window_width_input_rect = pygame.Rect(self.window_width // 2 - 90, self.window_height // 2 - 100, self.fixed_length, 30)
-        self.window_height_input_rect = pygame.Rect(self.window_width // 2 - 90, self.window_height // 2 - 50, self.fixed_length, 30)
-        self.ball_speed_input_rect = pygame.Rect(self.window_width // 2 - 90, self.window_height // 2, self.fixed_length, 30)
-        self.player_speed_input_rect = pygame.Rect(self.window_width // 2 - 90, self.window_height // 2 + 50, self.fixed_length, 30)
-
-        self.setting_input_active: bool = False
+        # The settings options are stored in a list of SettingData objects
+        # To add a new setting, add a new SettingData object to the list, input and safe are the names of the input and safe variables
+        self.settings_data: List[SettingData] = [
+            SettingData(rect=None, safe="player_name"  , input="player_name_input"   , text="Player Name: "   , input_type="str"      , upper_limit=15    , lower_limit=1   ),
+            SettingData(rect=None, safe="window_width" , input="window_width_input"  , text="Window Width: "  , input_type="int"      , upper_limit=1920  , lower_limit=400 ),
+            SettingData(rect=None, safe="window_height", input="window_height_input" , text="Window Height: " , input_type="int"      , upper_limit=1080  , lower_limit=400 ),
+            SettingData(rect=None, safe="ball_speed"   , input="ball_speed_input"    , text="Ball Speed: "    , input_type="int"      , upper_limit=20    , lower_limit=1   ),
+            SettingData(rect=None, safe="player_speed" , input="player_speed_input"  , text="Player Speed: "  , input_type="int"      , upper_limit=20    , lower_limit=1   )
+        ]
+        self.reset_settings_input() # Reset the inputs to the values at the moment
         
     def get_gamestate_from_option(self, option: str) -> Optional[str]:
         """
@@ -220,6 +224,7 @@ class StartScreen:
         pygame.display.flip()
         return None    
 
+
     def handle_input(self)-> Optional[Network]:
         # Event handling
         for event in pygame.event.get():
@@ -265,28 +270,22 @@ class StartScreen:
                 pass
             
             elif self.game_state == "settings":
-                if self.setting_input_active is False:
-                    if event.type == pygame.MOUSEBUTTONUP:
-                        mouse_pos = pygame.mouse.get_pos()
-                        if self.save_button_rect.collidepoint(mouse_pos):
-                            self.save_settings()
-                        elif self.player_name_input_rect.collidepoint(mouse_pos):
-                            self.handle_text_input(self.player_name_input_rect, "player_name_input")
-                        elif self.window_width_input_rect.collidepoint(mouse_pos):
-                            self.handle_number_input(self.window_width_input_rect, "window_width_input")
-                        elif self.window_height_input_rect.collidepoint(mouse_pos):
-                            self.handle_number_input(self.window_height_input_rect, "window_height_input")
-                        elif self.ball_speed_input_rect.collidepoint(mouse_pos):
-                            self.handle_number_input(self.ball_speed_input_rect, "ball_speed_input")
-                        elif self.player_speed_input_rect.collidepoint(mouse_pos):
-                            self.handle_number_input(self.player_speed_input_rect, "player_speed_input")
+                if event.type == pygame.MOUSEBUTTONUP:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if self.save_button_rect.collidepoint(mouse_pos):
+                        self.save_settings()
+                        
+                    else: 
+                        for data in self.settings_data:
+                            if data.rect.collidepoint(mouse_pos):
+                                self.handle_setting_input(data.rect, data.input, type=data.input_type)
+                                break
+                    
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.game_state = "main_menu"
 
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_ESCAPE:
-                            self.game_state = "main_menu"
-
-            else:
-                #if not self.game_state in self.option_to_gamestate.values(): # If the game state is a valid option
+            else:   # Other game states (including the error state)
                 if event.type == pygame.MOUSEBUTTONUP:
                     if self.invalid_state_button_rect.collidepoint(event.pos):
                         self.game_state = "main_menu"
@@ -335,51 +334,59 @@ class StartScreen:
         self.network.accept_connection()
         self.connection_established = True
 
-    def handle_text_input(self, input_rect: pygame.Rect, attribute_name: str):
-        pygame.event.clear()  # Clear any pending events to avoid unwanted input detection
+    def handle_setting_input(self, input_rect: pygame.Rect, attribute_name: str, type: str = "int"):
+        """
+        handel the input of a setting
 
-        self.setting_input_active: bool = True
-        while self.setting_input_active:
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RETURN:
-                        self.setting_input_active = False
-                    elif event.key == pygame.K_BACKSPACE:
-                        setattr(self, attribute_name, getattr(self, attribute_name)[:-1])
-                    else:
-                        if len(getattr(self, attribute_name)) < 15:  # Limit the input length if needed
-                            setattr(self, attribute_name, getattr(self, attribute_name) + event.unicode)
-
-            self.window.fill(self.BLACK)
-            self.render_settings()
-            pygame.draw.rect(self.window, self.YELLOW, input_rect, 2)  # Highlight the active input field
-            pygame.display.flip()
-
-    def handle_number_input(self, input_rect: pygame.Rect, attribute_name: str):
+        Args:
+            input_rect (pygame.Rect): the input rect on the screen
+            attribute_name (str): the name where its gettings saved
+            type (str): the type of the input ("int" or "str")
+        """
         pygame.event.clear()
 
-        active = True
+        active: bool = True
         while active:
             for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
                         active = False
-                    elif event.key == pygame.K_BACKSPACE:
-                        if len(str(getattr(self, attribute_name))) == 1:
-                            setattr(self, attribute_name, 0)
-                        else:
-                            setattr(self, attribute_name, int(str(getattr(self, attribute_name))[:-1]))
-                    elif event.key in [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5,
-                                   pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9]:
-                        digit = int(event.unicode)
-                        setattr(self, attribute_name, int(str(getattr(self, attribute_name)) + str(digit)))
+                        continue
+                        
+                    match type:
+                        case "int":
+                            if event.key == pygame.K_BACKSPACE:
+                                if len(str(getattr(self, attribute_name))) == 1:
+                                    setattr(self, attribute_name, 0)
+                                else:
+                                    setattr(self, attribute_name, int(str(getattr(self, attribute_name))[:-1]))
+                            elif event.key in [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5,
+                                        pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9]:
+                                digit = int(event.unicode)
+                                setattr(self, attribute_name, int(str(getattr(self, attribute_name)) + str(digit)))
+                                
+                        case "str":
+                            if event.key == pygame.K_BACKSPACE:
+                                setattr(self, attribute_name, getattr(self, attribute_name)[:-1])
+                            else:
+                                if len(getattr(self, attribute_name)) < 15:  # Limit the input length if needed
+                                    setattr(self, attribute_name, getattr(self, attribute_name) + event.unicode)
+                
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if not input_rect.collidepoint(mouse_pos):
+                        active = False
 
-            self.window.fill(self.BLACK)
-            # ... Render the rest of the settings menu ...
-            self.render_settings()
             
-            pygame.draw.rect(self.window, self.YELLOW, input_rect, 2)
+            self.window.fill(self.BLACK)
+            
+            self.render_settings()
+            pygame.draw.rect(self.window, self.YELLOW, input_rect, 2) # Highlight the active input field
             pygame.display.flip()
+            self.clock.tick(60)
 
     def render_settings(self):
         font_settings = pygame.font.Font(None, 40)
@@ -392,56 +399,19 @@ class StartScreen:
         
         font_input = pygame.font.Font(None, 32)
 
-        # Render player name input
-        player_name_label = font_input.render("Player Name:", True, self.WHITE)
-        player_name_rect = player_name_label.get_rect(midleft=(label_width, self.window_height // 2 - 150))
-        pygame.draw.rect(self.window, self.WHITE, self.player_name_input_rect, 2)
-        player_name_input = font_input.render(self.player_name_input, True, self.WHITE)
-        input_height: int = self.window_height // 2 - 150 - player_name_input.get_height()//2
-        self.player_name_input_rect = pygame.Rect(input_width, input_height - 5, self.fixed_length, player_name_input.get_height() + 5)
-        self.window.blit(player_name_label, player_name_rect)
-        self.window.blit(player_name_input, (input_width + 5, input_height))
-
-        # Render window width input
-        window_width_label = font_input.render("Window Width:", True, self.WHITE)
-        window_width_rect = window_width_label.get_rect(midleft=(label_width, self.window_height // 2 - 100))
-        pygame.draw.rect(self.window, self.WHITE, self.window_width_input_rect, 2)
-        window_width_input = font_input.render(str(self.window_width_input), True, self.WHITE)
-        input_height: int = self.window_height // 2 - 100 - player_name_input.get_height()//2
-        self.window_width_input_rect = pygame.Rect(input_width, input_height - 5, self.fixed_length, window_width_input.get_height() + 5)
-        self.window.blit(window_width_label, window_width_rect)
-        self.window.blit(window_width_input, (input_width + 5, input_height))
-
-        # Render window height input
-        window_height_label = font_input.render("Window Height:", True, self.WHITE)
-        window_height_rect = window_height_label.get_rect(midleft=(label_width, self.window_height // 2 - 50))
-        pygame.draw.rect(self.window, self.WHITE, self.window_height_input_rect, 2)
-        window_height_input = font_input.render(str(self.window_height_input), True, self.WHITE)
-        input_height: int = self.window_height // 2 - 50 - player_name_input.get_height()//2
-        self.window_height_input_rect = pygame.Rect(input_width, input_height - 5, self.fixed_length, window_height_input.get_height() + 5)
-        self.window.blit(window_height_label, window_height_rect)
-        self.window.blit(window_height_input, (input_width + 5, input_height))
-
-        # Render ball speed input
-        ball_speed_label = font_input.render("Ball Speed:", True, self.WHITE)
-        ball_speed_rect = ball_speed_label.get_rect(midleft=(label_width, self.window_height // 2))
-        pygame.draw.rect(self.window, self.WHITE, self.ball_speed_input_rect, 2)
-        ball_speed_input = font_input.render(str(self.ball_speed_input), True, self.WHITE)
-        input_height: int = self.window_height // 2 - player_name_input.get_height()//2
-        self.ball_speed_input_rect = pygame.Rect(input_width, input_height - 5, self.fixed_length, ball_speed_input.get_height() + 5)
-        self.window.blit(ball_speed_label, ball_speed_rect)
-        self.window.blit(ball_speed_input, (input_width + 5, input_height))
-
-        # Render player speed input
-        player_speed_label = font_input.render("Player Speed:", True, self.WHITE)
-        player_speed_rect = player_speed_label.get_rect(midleft=(label_width, self.window_height // 2 + 50))
-        pygame.draw.rect(self.window, self.WHITE, self.player_speed_input_rect, 2)
-        player_speed_input = font_input.render(str(self.player_speed_input), True, self.WHITE)
-        input_height: int = self.window_height // 2 + 50 - player_name_input.get_height()//2
-        self.player_speed_input_rect = pygame.Rect(input_width, input_height - 5, self.fixed_length, player_speed_input.get_height() + 5)
-        self.window.blit(player_speed_label, player_speed_rect)
-        self.window.blit(player_speed_input, (input_width + 5, input_height))
-
+        for i, data in enumerate(self.settings_data):
+            label = font_input.render(data.text, True, self.WHITE)
+            label_rect = label.get_rect(midleft=(label_width, self.window_height // 2 - 150 + (50 * i)))
+            input = font_input.render(str(getattr(self, data.input)), True, self.WHITE)
+            input_height: int = self.window_height // 2 - 150 + (i * 50) - input.get_height()//2
+            
+            data.rect = pygame.Rect(input_width, input_height - 5, self.fixed_length, input.get_height() + 5)
+            pygame.draw.rect(self.window, self.WHITE, data.rect, 2)
+            
+            self.window.blit(label, label_rect)
+            self.window.blit(input, (input_width + 5, input_height))
+            
+            
         # Render the save button
         self.save_button_rect = pygame.Rect(self.window_width // 2 - 100, self.window_height - 100, 200, 50)
         save_button_text = font_input.render("Save Changes", True, self.WHITE)
@@ -449,51 +419,36 @@ class StartScreen:
         pygame.draw.rect(self.window, self.GRAY, self.save_button_rect)
         pygame.draw.rect(self.window, self.BLACK, self.save_button_rect.inflate(6, 6))
         self.window.blit(save_button_text, self.save_button_rect.move(10, 10))
-
+            
+        return
+            
     def save_settings(self):
-        # Perform actions with the updated settings
         print("Saving settings...")
-        print("Player Name:", self.player_name_input)
-        print("Window Width:", self.window_width_input)
-        print("Window Height:", self.window_height_input)
-        print("Ball Speed:", self.ball_speed_input)
-        print("Player Speed:", self.player_speed_input)
         
-        window_size_changed: bool = False
-        
-        if len(self.player_name_input) > 0:
-            self.player_name = self.player_name_input
-        else:
-            self.player_name_input = self.player_name
-            
-        if self.window_width_input > 500 and self.window_width_input < 2000 and self.window_width_input != self.window_width: 
-            window_size_changed = True
-            self.window_width = self.window_width_input
-        else:
-            self.window_width_input = self.window_width
-            
-        if self.window_height_input > 600 and self.window_height_input < 2000 and self.window_height_input != self.window_height: 
-            window_size_changed = True
-            self.window_height = self.window_height_input
-        else:
-            self.window_height_input = self.window_height
-            
-        if self.ball_speed_input > 0 and self.ball_speed_input < 100: 
-            self.ball_speed = self.ball_speed_input
-        else:
-            self.ball_speed_input = self.ball_speed
-            
-        if self.player_speed_input > 0 and self.player_speed_input < 100: 
-            self.player_speed = self.player_speed_input
-        else:
-            self.player_speed_input = self.player_speed
-            
-        if window_size_changed:
+        update_window: bool = False
+        for data in self.settings_data:
+            input = getattr(self, data.input)   # Get the input value
+            value = getattr(self, data.safe)    # Get the current value
+
+            if data.input_type == "int":
+                # Check if the input is different from the current value and if its in the range
+                if input != value and input > data.lower_limit and input < data.upper_limit:
+                    setattr(self, data.safe, input)
+                    if data.safe == "window_width" or data.safe == "window_height":
+                        # If the window size is changed, the window needs to be resized
+                        update_window = True
+
+            elif data.input_type == "str":
+                # Check if the input is different from the current value and if the length is in the range
+                if input != value and len(input) > data.lower_limit and len(input) < data.upper_limit:
+                    setattr(self, data.safe, input)  
+                          
+        if update_window is True:
+            print("resizing window")
             self.window = pygame.display.set_mode((self.window_width, self.window_height))
             
     def reset_settings_input(self):
-        self.player_name_input = self.player_name
-        self.window_width_input = self.window_width
-        self.window_height_input = self.window_height
-        self.ball_speed_input = self.ball_speed
-        self.player_speed_input = self.player_speed
+        
+        for data in self.settings_data:
+            setattr(self, data.input, getattr(self, data.safe))
+            
