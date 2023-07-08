@@ -1,6 +1,4 @@
-import pygame
-import random
-import math
+import pygame, random, math, time
 from network import Network
 from SendData import SendData
 from StartScreen import StartScreen
@@ -9,36 +7,74 @@ class Game:
     def __init__(self, screen_width, screen_height, network: Network=None):
         # Initialize the game
         pygame.init()
-        self.screen_width = screen_width
-        self.screen_height = screen_height
+        self.screen_width: int = screen_width
+        self.screen_height: int = screen_height
         self.screen = pygame.display.set_mode((screen_width, screen_height))
         self.clock = pygame.time.Clock()
 
-        # Initialize the network
-        self.is_server = True  # Set to True if this instance is the server
-
-        if network is None:
-            start_screen: StartScreen = StartScreen(self.screen_width, self.screen_height, self.screen, self.clock)
-            self.network = start_screen.run()
-            print(self.network.is_server)
             
         
         # Game variables
-        self.paddle1_pos = self.screen_height // 2
-        self.paddle2_pos = self.screen_height // 2
-        self.paddle_speed = 8
+        self.paddle1_pos: int = self.screen_height // 2
+        self.paddle2_pos: int = self.screen_height // 2
+        self.player_speed: float = 8
 
-        self.ball_x = self.screen_width // 2
-        self.ball_y = self.screen_height // 2
-        self.ball_dx = 5 if random.random() < 0.5 else -5
-        self.ball_dy = 5 if random.random() < 0.5 else -5
+        self.ball_speed: int = 5
+        self.reset_ball()
+        
+        self.ball_size: int = 20
 
-        self.ball_size = 20
+        self.player1_score: int = 0
+        self.player2_score: int = 0
 
-        self.player1_score = 0
-        self.player2_score = 0
-
-        self.game_state = "start"
+        self.game_state: str = "start"
+        
+        
+        if network is None:
+            start_screen: StartScreen = StartScreen(self.screen_width, self.screen_height, self.screen, self.clock)
+            self.network = start_screen.run()
+            if self.network.is_server:
+                if self.screen_width != start_screen.window_width or self.screen_height != start_screen.window_height:
+                    self.screen_height = start_screen.window_height
+                    self.screen_width = start_screen.window_width
+                    self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+                    
+                if self.player_speed != start_screen.player_speed:
+                    self.player_speed = start_screen.player_speed
+                    
+                if self.ball_speed != start_screen.ball_speed:
+                    self.ball_speed = start_screen.ball_speed
+                    
+                print("sending player speed")
+                self.network.send_data(self.player_speed)
+                self.network.receive_data()
+                print("sending screen height")
+                self.network.send_data(self.screen_height)
+                self.network.receive_data()
+                print("sending screen width")
+                self.network.send_data(self.screen_width)
+                self.network.receive_data()
+            else:
+                self.player_speed: int = self.network.receive_data()
+                self.network.send_data("")
+                
+                print(f"speed: {self.player_speed}")
+                screen_height_get: int = self.network.receive_data()
+                self.network.send_data("")
+                
+                print(f"height: {screen_height_get}")    
+                screen_width_get: int = self.network.receive_data()
+                self.network.send_data("")
+                
+                print(f"width: {screen_width_get}")
+                print(screen_height_get, screen_width_get, self.player_speed)
+                
+                if screen_height_get != self.screen_height or screen_width_get != self.screen_width:
+                    self.screen_height = int(screen_height_get)
+                    self.screen_width = int(screen_width_get)
+                    self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+                
+            print(f"is server: self.network.is_server")
 
     def calculate_ball_angle(self, paddle_pos, ball_pos):
         relative_y = ball_pos - paddle_pos
@@ -47,11 +83,11 @@ class Game:
         angle = math.sin(normalized_relative_y * math.pi / 2) * max_angle
         return -angle
 
-    def reset_game(self):
-        self.ball_x = self.screen_width // 2
-        self.ball_y = self.screen_height // 2
-        self.ball_dx = 5 if random.random() < 0.5 else -5
-        self.ball_dy = 5 if random.random() < 0.5 else -5
+    def reset_ball(self):
+        self.ball_x: int = self.screen_width // 2
+        self.ball_y: int = self.screen_height // 2
+        self.ball_dx: float = self.ball_speed if random.random() < 0.5 else -self.ball_speed
+        self.ball_dy: float = self.ball_speed if random.random() < 0.5 else -self.ball_speed
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -66,21 +102,21 @@ class Game:
                         self.game_state = "start"
                         self.player1_score = 0
                         self.player2_score = 0
-                        self.reset_game()
+                        self.reset_ball()
         return True
 
     def update_game(self, keys):
         if self.game_state == "playing":
             if self.network.is_server:
                 if keys[pygame.K_w] and self.paddle1_pos > 0:
-                    self.paddle1_pos -= self.paddle_speed
+                    self.paddle1_pos -= self.player_speed
                 if keys[pygame.K_s] and self.paddle1_pos < self.screen_height - 50:
-                    self.paddle1_pos += self.paddle_speed
+                    self.paddle1_pos += self.player_speed
             else:
                 if keys[pygame.K_UP] and self.paddle2_pos > 0:
-                    self.paddle2_pos -= self.paddle_speed
+                    self.paddle2_pos -= self.player_speed
                 if keys[pygame.K_DOWN] and self.paddle2_pos < self.screen_height - 50:
-                    self.paddle2_pos += self.paddle_speed
+                    self.paddle2_pos += self.player_speed
 
             if self.network.is_server:
 
@@ -89,10 +125,10 @@ class Game:
 
                 if self.ball_x < 0:
                     self.player2_score += 1
-                    self.reset_game()
+                    self.reset_ball()
                 elif self.ball_x > self.screen_width:
                     self.player1_score += 1
-                    self.reset_game()
+                    self.reset_ball()
 
                 if self.player1_score >= 10 or self.player2_score >= 10:
                     self.game_state = "game_over"
@@ -103,12 +139,12 @@ class Game:
                 if self.ball_x == 30 and self.paddle1_pos <= self.ball_y < self.paddle1_pos + 50:
                     ball_angle = self.calculate_ball_angle(self.paddle1_pos, self.ball_y)
                     self.ball_dx = abs(self.ball_dx)
-                    self.ball_dy = -math.sin(ball_angle) * 5
+                    self.ball_dy = -math.sin(ball_angle) * self.ball_speed
                     self.ball_dy += random.uniform(-1, 1)
                 if self.ball_x == self.screen_width - 50 and self.paddle2_pos <= self.ball_y < self.paddle2_pos + 50:
                     ball_angle = self.calculate_ball_angle(self.paddle2_pos, self.ball_y)
                     self.ball_dx = -abs(self.ball_dx)
-                    self.ball_dy = -math.sin(ball_angle) * 5
+                    self.ball_dy = -math.sin(ball_angle) * self.ball_speed
                     self.ball_dy += random.uniform(-1, 1)
 
             # Send and receive player positions
@@ -127,7 +163,6 @@ class Game:
                 self.player2_score = data.client_score
                 self.network.send_data(self.paddle2_pos)
                 
-
     def render_game(self):
         self.screen.fill((0, 0, 0))
         if self.game_state == "start":
@@ -154,6 +189,7 @@ class Game:
         pygame.display.flip()
 
     def run(self):
+        
         running = True
         while running:
             keys = pygame.key.get_pressed()
