@@ -313,6 +313,7 @@ class StartScreen:
         match option_to_state:
             case "start_game":
                 self.network_thread = threading.Thread(target=self.wait_for_connection)
+                self.network_thread.daemon = True
                 self.network_thread.start()
             case "join_game":
                 pass
