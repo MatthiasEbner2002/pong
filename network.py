@@ -1,6 +1,7 @@
 import socket
 import pickle
 
+
 class Network:
     def __init__(self, is_server=False, server_ip=None, start_now=True):
         self.is_server = is_server
@@ -39,17 +40,18 @@ class Network:
         self.client_socket.close()
         if self.is_server:
             self.server_socket.close()
-            
+
     def start_socket(self):
         self.host = socket.gethostbyname(self.get_ip_address())
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server_socket.setsockopt(
+            socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_socket.bind((self.host,  self.port))
-        self.server_socket.listen(1)    # 1 is the maximum number of connections
+        # 1 is the maximum number of connections
+        self.server_socket.listen(1)
         print(f"Waiting for a connection...{self.host}")
         return self.host
-        
-        
+
     def accept_connection(self):
         self.client_socket, addr = self.server_socket.accept()
         print("Connected to", addr)
@@ -60,7 +62,14 @@ class Network:
         address = s.getsockname()[0]
         s.close()
         return address
-    
+
     def __str__(self):
-        return f"Network(is_server={self.is_server}, server_ip={self.server_ip}, host={self.host}, port={self.port}, server_socket={self.server_socket}, client_socket={self.client_socket})"
-        
+        ret: str = 'Network('
+        ret += f"is_server={self.is_server},"
+        ret += f"server_ip={self.server_ip},"
+        ret += f"host={self.host},"
+        ret += f"port={self.port},"
+        ret += f"server_socket={self.server_socket},"
+        ret += f"client_socket={self.client_socket}"
+        ret += ')'
+        return ret

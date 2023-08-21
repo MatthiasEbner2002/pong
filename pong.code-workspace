@@ -1,0 +1,31 @@
+{
+	"folders": [
+		/*{
+			"path": "backend"
+		},
+		{
+			"path": "frontend"
+		}*/
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"editor.tabSize": 2,
+		"editor.rulers": [
+			120
+		],
+		"[python]": {
+			"editor.defaultFormatter": "ms-python.autopep8",
+			"editor.formatOnSave": true
+		},
+		"flake8.args": [
+			"--max-line-length=120",
+			"--indent-size=4",
+		],
+		"autopep8.args": [
+			"--max-line-length=120",
+			"--indent-size=4",
+		],
+	}
+}

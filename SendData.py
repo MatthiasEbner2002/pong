@@ -1,5 +1,3 @@
-
-
 class SendData():
     def __init__(self, player_position, game_state, ball_x, ball_y, server_score, client_score):
         self.player_position = player_position
@@ -8,7 +6,7 @@ class SendData():
         self.ball_y = ball_y
         self.server_score = server_score
         self.client_score = client_score
-        
+
     def __getstate__(self):
         return (
             self.player_position,
