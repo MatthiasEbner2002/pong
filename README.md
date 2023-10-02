@@ -18,7 +18,7 @@ Pong Game is a classic arcade game implemented in Python using the Pygame librar
 
 ### INFO
 
-!! NOT TESTET ON 2 PC !! <br>
+!! TESTET ON 2 PC !! Fast Ball speed breaks the game <br>
 
 ## Connecting
 
